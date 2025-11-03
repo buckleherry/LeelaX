@@ -86,7 +86,7 @@ def test_side_to_move_plane(fen, white_to_move):
     [
         ("startpos", (True, True, True, True)),
         ("4k3/8/8/8/8/8/8/R3K2R w K - 0 1", (True, False, False, False)),
-        ("r3k2r/8/8/8/8/8/8/4K3 w - - 0 1", (False, False, True, True)),
+        ("r3k2r/8/8/8/8/8/8/4K3 w kq - 0 1", (False, False, True, True)),
     ],
 )
 def test_castling_right_planes(fen, rights):
@@ -139,7 +139,7 @@ def test_halfmove_plane(fen, halfmove):
 
 def test_in_check_plane_and_repetition_flags():
     # in-check position
-    board = chess.Board("4k3/8/8/8/8/8/5R2/4K3 b - - 0 1")
+    board = chess.Board("4k3/8/8/8/8/8/4R3/4K3 b - - 0 1")
     x = tensor_to_np(state_to_tensor(board))
     assert np.all(x[19] == 1), "in-check plane should be 1 when in check"
 
