@@ -7,5 +7,12 @@ tyro>=0.6
 tensorboard>=2.14
 rich>=13.0
 
+# Notebook
+jupyter
+ipykernel
+
+# Plot
+matplotlib>=3.8
+
 # Optional
 # wandb>=0.16
