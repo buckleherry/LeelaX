@@ -4,6 +4,10 @@
 
 This project is built as a **scientific prototype** — not to achieve peak Elo, but to **demonstrate and explore the principles** behind self-play learning, Monte Carlo Tree Search (MCTS), and neural policy/value training in complex domains like chess.
 
+This repository currently demonstrates a full inference path:
+FEN → encoded tensor → neural policy/value → MCTS (PUCT) → improved policy → move.
+The next step is to wrap this into a self-play loop and start producing training data.
+
 ---
 
 ## 🎯 Project Goals
@@ -39,6 +43,24 @@ This project is built as a **scientific prototype** — not to achieve peak Elo,
 | **LXL-003 – CLI / visual debug tools** | ⏳ Planned | Human-readable dumps of encoded states and masks. |
 | **LXL-010 → LXL-013 – Network + Training** | 🚧 Upcoming | Policy-Value network, loss functions, replay buffer, optimizer. |
 | **LXL-020 – Self-Play + MCTS** | 🚧 Upcoming | Full AlphaZero-style RL loop. |
+
+## Current Status
+
+- ✅ Environment
+  - 24-plane board encoding (`leelax.env.encode`)
+  - AlphaZero 8×8×73 policy space + legal move mask (`leelax.env.policy_index`)
+  - CLI for inspecting encodings (`python -m leelax.env.inspect --fen ...`)
+- ✅ Neural Network
+  - Small ResNet backbone (4×64) with policy (4672 logits) + value head (`leelax.net.model`)
+  - Masked softmax + action selection utilities (`leelax.net.inference`)
+- ✅ Search
+  - PUCT-based MCTS that uses the network for priors and value (`leelax.mcts.puct`)
+  - Returns visit-based policy (training target) and a chosen move
+- ⏳ Next
+  - Self-play worker to generate (state, policy, value) triplets
+  - Replay buffer
+  - Training loop (CE + MSE) and checkpointing
+  - Evaluation / arena
 
 ---
 
