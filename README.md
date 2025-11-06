@@ -4,10 +4,6 @@
 
 This project is built as a **scientific prototype** — not to achieve peak Elo, but to **demonstrate and explore the principles** behind self-play learning, Monte Carlo Tree Search (MCTS), and neural policy/value training in complex domains like chess.
 
-This repository currently demonstrates a full inference path:
-FEN → encoded tensor → neural policy/value → MCTS (PUCT) → improved policy → move.
-The next step is to wrap this into a self-play loop and start producing training data.
-
 ---
 
 ## 🎯 Project Goals
