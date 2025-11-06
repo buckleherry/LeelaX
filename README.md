@@ -32,28 +32,23 @@ This project is built as a **scientific prototype** — not to achieve peak Elo,
 
 ## 🧩 Current Status
 
-| Component | Progress | Notes |
-|:-----------|:----------|:------|
-| **LXL-001 – State Encoder** | ✅ Complete | 24-channel board encoding. |
-| **LXL-002 – Policy Indexing (8×8×73)** | ✅ Complete | Action space defined and tested. |
-| **LXL-003 – CLI / visual debug tools** | ⏳ Planned | Human-readable dumps of encoded states and masks. |
-| **LXL-010 → LXL-013 – Network + Training** | 🚧 Upcoming | Policy-Value network, loss functions, replay buffer, optimizer. |
-| **LXL-020 – Self-Play + MCTS** | 🚧 Upcoming | Full AlphaZero-style RL loop. |
-
----
-
-## 📚 Scientific Relevance
-
-LeelaX is structured as a **research instrument** — each subsystem is isolated and documented for independent inspection and benchmarking.  
-The aim is to make *deep RL for board games* accessible to students, practitioners, and employers seeking examples of:
-
-- Applied Reinforcement Learning with PyTorch  
-- MCTS guided by neural priors  
-- Reward shaping and style conditioning  
-- Transparent, test-driven scientific software development  
-
-This project could support a **short research paper** or **technical blog** on topics such as:
-> *“Reward Shaping and Aggression in Self-Play Reinforcement Learning for Chess.”*
+- ✅ Environment
+  - 24-plane board encoding (`leelax.env.encode`)
+  - AlphaZero 8×8×73 policy space + legal move mask (`leelax.env.policy_index`)
+  - CLI for inspecting encodings (`python -m leelax.env.inspect --fen ...`)
+- ✅ Neural Network
+  - Small ResNet backbone (4×64) with policy (4672 logits) + value head (`leelax.net.model`)
+  - Masked softmax + action selection utilities (`leelax.net.inference`)
+- ✅ Search
+  - PUCT-based MCTS that uses the network for priors and value (`leelax.mcts.puct`)
+  - Added MCTSNode and PUCT classes implementing AlphaZero-style tree search
+  - Produces visit-based policies for self-play training targets
+  - Includes Dirichlet root noise, cpuct exploration constant, and backup propagation
+- ⏳ Next
+  - Self-play worker to generate (state, policy, value) triplets
+  - Replay buffer
+  - Training loop (CE + MSE) and checkpointing
+  - Evaluation / arena
 
 ---
 

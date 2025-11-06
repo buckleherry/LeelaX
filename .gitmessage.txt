@@ -1,0 +1,10 @@
+# Commit message template for LeelaX
+# <type>(<scope>): <summary>
+# 
+# body (optional, wrap at 72 chars)
+# - Why this change
+# - How it works
+# - Any side effects
+#
+# footer (optional)
+# e.g. Closes LXL-010, Related to #12
