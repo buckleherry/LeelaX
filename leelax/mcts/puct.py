@@ -15,7 +15,7 @@ from leelax.env.policy_index import move_to_index, index_to_move, legal_policy_m
 class MCTSNode:
     board: chess.Board
     parent: Optional["MCTSNode"] = None
-    parent_action: Optional[int] = None  # canonical action index
+    parent_action: Optional[int] = None
     n_visits: int = 0
     value_sum: float = 0.0
     children: Dict[int, "MCTSNode"] = field(default_factory=dict)
@@ -61,7 +61,7 @@ class PUCT:
             value = self._evaluate(node)
             self._backup(path, value)
 
-        # build visit-based policy
+        # visit-based policy
         policy = np.zeros_like(root.priors, dtype=np.float32)
         for a_idx, child in root.children.items():
             policy[a_idx] = child.n_visits
@@ -71,6 +71,8 @@ class PUCT:
         best_action = int(np.argmax(policy))
         return policy, best_action
 
+    # ------------------------------------------------------------------ core steps
+
     def _select(self, root: MCTSNode):
         node = root
         path = [node]
@@ -78,7 +80,6 @@ class PUCT:
         while not node.is_leaf():
             best_score = -1e9
             best_child = None
-            best_action = None
 
             sqrt_visits = np.sqrt(node.n_visits + 1e-8)
             for a_idx, child in node.children.items():
@@ -89,7 +90,6 @@ class PUCT:
                 if score > best_score:
                     best_score = score
                     best_child = child
-                    best_action = a_idx
 
             node = best_child  # type: ignore[assignment]
             path.append(node)
@@ -98,6 +98,7 @@ class PUCT:
 
     def _expand(self, node: MCTSNode) -> None:
         board = node.board
+        # canonical input: side-to-move is always "white"
         state = state_to_tensor(board, canonical=True).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -105,26 +106,32 @@ class PUCT:
         policy_logits = policy_logits.detach().cpu()
         value = value.item()
 
-        legal_mask = legal_policy_mask(board)
-        logits = policy_logits.numpy().reshape(-1)
+        legal_mask = legal_policy_mask(board)  # (4864,)
+        logits = policy_logits.numpy().reshape(-1)  # (4864,)
+        # mask out illegal
         logits[legal_mask == 0] = -1e9
 
         max_logit = np.max(logits)
         exp = np.exp(logits - max_logit)
         exp[legal_mask == 0] = 0.0
         s = exp.sum()
-        priors = exp / s if s > 0 else legal_mask / legal_mask.sum()
+        if s > 0:
+            priors = exp / s
+        else:
+            # fallback: uniform over legal
+            priors = legal_mask / legal_mask.sum()
 
         node.priors = priors
         node.legal_mask = legal_mask
         node.is_expanded = True
         node.value_from_net = value  # type: ignore[attr-defined]
 
-        # create children for all mappable legal moves
+        # create children (only for moves we can map)
         for mv in board.legal_moves:
             try:
                 a_idx = move_to_index(board, mv)
             except KeyError:
+                # e.g. some exotic move that doesn't fit 76-type space
                 continue
             child_board = board.copy()
             child_board.push(mv)
@@ -147,7 +154,6 @@ class PUCT:
         return node.value_from_net  # type: ignore[attr-defined]
 
     def _backup(self, path, value: float) -> None:
-        # alternate perspective
         for i, node in enumerate(reversed(path)):
             node.n_visits += 1
             sign = 1.0 if i % 2 == 0 else -1.0
@@ -158,7 +164,6 @@ class PUCT:
         assert legal is not None
         legal_indices = np.where(legal == 1)[0]
         noise = np.random.dirichlet([self.dirichlet_alpha] * len(legal_indices))
-
         priors = root.priors.copy()
         priors[legal_indices] = (
             (1 - self.dirichlet_eps) * priors[legal_indices]
