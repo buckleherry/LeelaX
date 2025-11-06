@@ -3,7 +3,7 @@ from __future__ import annotations
 import chess
 import torch
 import numpy as np
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple
 
 from leelax.env.encode import state_to_tensor
 from leelax.env.policy_index import index_to_move
@@ -32,12 +32,13 @@ class SelfPlayWorker:
         move_count = 0
 
         while not board.is_game_over() and move_count < self.max_moves:
+            # canonical input
             state = state_to_tensor(board, canonical=True)
 
             mcts = PUCT(self.network_fn, n_simulations=self.n_simulations, device=self.device)
             policy, action_idx = mcts.run(board)
 
-            # temperature exploration
+            # exploration
             if self.temperature and self.temperature > 0:
                 probs = np.power(policy, 1.0 / self.temperature)
                 probs = probs / probs.sum()
@@ -45,10 +46,9 @@ class SelfPlayWorker:
             else:
                 action_idx = int(np.argmax(policy))
 
-            # convert canonical index → real-board move
+            # back to real board
             move = index_to_move(board, action_idx)
             if move not in board.legal_moves:
-                # safety fallback
                 move = np.random.choice(list(board.legal_moves))
 
             # record BEFORE push
