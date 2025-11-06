@@ -9,7 +9,7 @@ import chess
 # Channel layout (24):
 #  0..5   : White pieces  [P, N, B, R, Q, K]
 #  6..11  : Black pieces  [p, n, b, r, q, k]
-#  12     : Side to move (1 = white to move, else 0)  [full board]
+#  12     : Side to move (1 = current player to move)  [full board]
 #  13     : Castling right: White king side
 #  14     : Castling right: White queen side
 #  15     : Castling right: Black king side
@@ -22,7 +22,7 @@ import chess
 #  22     : Reserved (zeros)
 #  23     : Reserved (zeros)
 #
-# Output shape: (24, 8, 8)  -- NCHW
+# Output shape: (24, 8, 8)
 
 
 PIECE_TO_INDEX = {
@@ -43,28 +43,21 @@ def _empty_planes() -> np.ndarray:
 
 
 def _square_to_coords(square: chess.Square) -> tuple[int, int]:
-    """Convert python-chess square (0..63) to (row, col) in 8x8 tensor.
-
-    We use row 0 = rank 8 (top), row 7 = rank 1 (bottom)
-    and col 0 = file 'a'.
-    """
-    rank = chess.square_rank(square)  # 0 (rank1) .. 7 (rank8)
-    file = chess.square_file(square)  # 0 (a) .. 7 (h)
-    row = 7 - rank  # flip so that row 0 is top
+    rank = chess.square_rank(square)  # 0..7 (from white's POV, 0=rank1)
+    file = chess.square_file(square)  # 0..7
+    row = 7 - rank  # row 0 = top
     col = file
     return row, col
 
 
 def _encode_pieces(board: chess.Board, planes: np.ndarray) -> None:
-    """Fill planes 0..11 with piece locations."""
     for square, piece in board.piece_map().items():
         row, col = _square_to_coords(square)
         base_idx = PIECE_TO_INDEX[piece.piece_type]
         if piece.color == chess.WHITE:
-            plane_idx = base_idx  # 0..5
+            planes[base_idx, row, col] = 1.0
         else:
-            plane_idx = 6 + base_idx  # 6..11
-        planes[plane_idx, row, col] = 1.0
+            planes[6 + base_idx, row, col] = 1.0
 
 
 def _encode_side_to_move(board: chess.Board, planes: np.ndarray) -> None:
@@ -72,7 +65,6 @@ def _encode_side_to_move(board: chess.Board, planes: np.ndarray) -> None:
 
 
 def _encode_castling(board: chess.Board, planes: np.ndarray) -> None:
-    # full-board binary planes
     if board.has_kingside_castling_rights(chess.WHITE):
         planes[13, :, :] = 1.0
     if board.has_queenside_castling_rights(chess.WHITE):
@@ -86,13 +78,11 @@ def _encode_castling(board: chess.Board, planes: np.ndarray) -> None:
 def _encode_en_passant(board: chess.Board, planes: np.ndarray) -> None:
     if board.ep_square is None:
         return
-    file_idx = chess.square_file(board.ep_square)  # 0..7
-    # set the whole column to 1
+    file_idx = chess.square_file(board.ep_square)
     planes[17, :, file_idx] = 1.0
 
 
 def _encode_halfmove_clock(board: chess.Board, planes: np.ndarray) -> None:
-    # normalize to [0,1], cap at 99 to avoid extreme values
     value = min(board.halfmove_clock, 99) / 99.0
     planes[18, :, :] = value
 
@@ -103,27 +93,45 @@ def _encode_in_check(board: chess.Board, planes: np.ndarray) -> None:
 
 
 def _encode_repetition(board: chess.Board, planes: np.ndarray) -> None:
-    # python-chess can test is_repetition(n)
     if board.is_repetition(2):
         planes[20, :, :] = 1.0
     if board.is_repetition(3):
         planes[21, :, :] = 1.0
 
 
-def state_to_tensor(board: chess.Board) -> torch.Tensor:
-    """Encode a python-chess Board into a (24, 8, 8) float32 tensor.
+def _canonicalize_planes_for_black(planes: np.ndarray) -> np.ndarray:
+    """Rotate 180° and swap white/black-specific planes so that
+    the side to move is always 'white' from the network's view.
+    """
+    # rotate all planes 180°
+    planes = planes[:, ::-1, ::-1].copy()
 
-    Channels:
-        0..5   : white pieces (P,N,B,R,Q,K)
-        6..11  : black pieces (p,n,b,r,q,k)
-        12     : side to move
-        13..16 : castling rights (WK, WQ, BK, BQ)
-        17     : en passant file (if any)
-        18     : halfmove clock normalized
-        19     : in check (side to move)
-        20     : repetition >= 2
-        21     : repetition >= 3
-        22..23 : reserved zeros
+    # swap piece planes: 0..5 <-> 6..11
+    for i in range(6):
+        tmp = planes[i].copy()
+        planes[i] = planes[6 + i]
+        planes[6 + i] = tmp
+
+    # swap castling planes:
+    # 13 (Wk) <-> 15 (Bk)
+    # 14 (Wq) <-> 16 (Bq)
+    tmp = planes[13].copy()
+    planes[13] = planes[15]
+    planes[15] = tmp
+
+    tmp = planes[14].copy()
+    planes[14] = planes[16]
+    planes[16] = tmp
+
+    # side-to-move plane: after canonicalization, it's always white to move
+    planes[12, :, :] = 1.0
+
+    return planes
+
+
+def state_to_tensor(board: chess.Board, canonical: bool = True) -> torch.Tensor:
+    """Encode board into (24, 8, 8). If canonical=True, always from
+    side-to-move perspective (i.e. black is flipped).
     """
     planes = _empty_planes()
     _encode_pieces(board, planes)
@@ -133,6 +141,9 @@ def state_to_tensor(board: chess.Board) -> torch.Tensor:
     _encode_halfmove_clock(board, planes)
     _encode_in_check(board, planes)
     _encode_repetition(board, planes)
-    # planes[22] and planes[23] stay zero
+
+    if canonical and board.turn == chess.BLACK:
+        planes = _canonicalize_planes_for_black(planes)
+
     return torch.from_numpy(planes)
 

@@ -35,6 +35,7 @@ This project is built as a **scientific prototype** — not to achieve peak Elo,
 - ✅ Environment
   - 24-plane board encoding (`leelax.env.encode`)
   - AlphaZero 8×8×73 policy space + legal move mask (`leelax.env.policy_index`)
+  - AlphaZero-style canonical input/output (side-to-move normalization)
   - CLI for inspecting encodings (`python -m leelax.env.inspect --fen ...`)
 - ✅ Neural Network
   - Small ResNet backbone (4×64) with policy (4672 logits) + value head (`leelax.net.model`)
