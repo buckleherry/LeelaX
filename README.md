@@ -44,8 +44,6 @@ The next step is to wrap this into a self-play loop and start producing training
 | **LXL-010 → LXL-013 – Network + Training** | 🚧 Upcoming | Policy-Value network, loss functions, replay buffer, optimizer. |
 | **LXL-020 – Self-Play + MCTS** | 🚧 Upcoming | Full AlphaZero-style RL loop. |
 
-## Current Status
-
 - ✅ Environment
   - 24-plane board encoding (`leelax.env.encode`)
   - AlphaZero 8×8×73 policy space + legal move mask (`leelax.env.policy_index`)
