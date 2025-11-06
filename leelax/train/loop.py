@@ -3,17 +3,14 @@ from __future__ import annotations
 from typing import Dict, Any, Optional, Iterable
 
 import torch
-import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from leelax.net.model import LeelaXNet
 from leelax.selfplay.replay_buffer import ReplayBuffer
 from leelax.train.losses import policy_loss_fn, value_loss_fn
 from leelax.train.replay_dataset import make_replay_dataloader
-
-
-def create_optimizer(model: torch.nn.Module, lr: float = 1e-3) -> torch.optim.Optimizer:
-    return optim.Adam(model.parameters(), lr=lr)
+from leelax.train.optim import create_optimizer, create_scheduler
+from leelax.train.logger import log_metrics
 
 
 def train_step_batch(
@@ -24,7 +21,6 @@ def train_step_batch(
     value_loss_weight: float = 1.0,
     policy_loss_weight: float = 1.0,
 ) -> Dict[str, Any]:
-    """Train on an already prepared batch (states, policies, values)."""
     model.train()
     states, policies, values = batch
     states = states.to(device)
@@ -55,12 +51,17 @@ def train_for_n_steps(
     lr: float = 1e-3,
     batch_size: int = 64,
     num_workers: int = 0,
+    scheduler_type: str = "cosine",
+    tb_writer=None,
 ) -> None:
-    """Simple training loop over the replay buffer using a DataLoader."""
     model.to(device)
     optimizer = create_optimizer(model, lr=lr)
+    scheduler = create_scheduler(
+        optimizer,
+        scheduler_type=scheduler_type,
+        T_max=n_steps,
+    )
 
-    # build dataloader from replay buffer
     dataloader = make_replay_dataloader(
         replay,
         batch_size=batch_size,
@@ -69,7 +70,6 @@ def train_for_n_steps(
         pin_memory=(device != "cpu"),
     )
 
-    # we might have fewer batches than n_steps → just cycle
     data_iter: Optional[Iterable] = None
 
     def get_next_batch():
@@ -86,6 +86,7 @@ def train_for_n_steps(
         batch = get_next_batch()
         metrics = train_step_batch(model, batch, optimizer, device=device)
 
+        # log to console
         if step % 10 == 0 or step == 1:
             print(
                 f"[train] step={step} "
@@ -93,4 +94,14 @@ def train_for_n_steps(
                 f"policy={metrics['policy_loss']:.4f} "
                 f"value={metrics['value_loss']:.4f}"
             )
+
+        # log to tensorboard
+        if tb_writer is not None:
+            log_metrics(tb_writer, metrics, step, prefix="train")
+            # also log current LR
+            for i, group in enumerate(optimizer.param_groups):
+                tb_writer.add_scalar(f"train/lr_group_{i}", group["lr"], step)
+
+        if scheduler is not None:
+            scheduler.step()
 
