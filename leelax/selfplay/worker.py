@@ -32,13 +32,12 @@ class SelfPlayWorker:
         move_count = 0
 
         while not board.is_game_over() and move_count < self.max_moves:
-            # canonical input
             state = state_to_tensor(board, canonical=True)
 
             mcts = PUCT(self.network_fn, n_simulations=self.n_simulations, device=self.device)
             policy, action_idx = mcts.run(board)
 
-            # exploration
+            # temperature sampling
             if self.temperature and self.temperature > 0:
                 probs = np.power(policy, 1.0 / self.temperature)
                 probs = probs / probs.sum()
@@ -46,25 +45,22 @@ class SelfPlayWorker:
             else:
                 action_idx = int(np.argmax(policy))
 
-            # back to real-board move
             move = index_to_move(board, action_idx)
             if move not in board.legal_moves:
                 move = np.random.choice(list(board.legal_moves))
 
-            # record BEFORE push
             recorder.add(state, policy, board.turn, move)
 
             san_str = board.san(move)
             uci_str = move.uci()
-
             board.push(move)
             move_count += 1
 
             if verbose:
                 print(f"[{move_count}] {uci_str} ({san_str})")
 
-        # finalize with game result & moves
         recorder.finalize(board)
         samples = recorder.export()
         moves = recorder.moves
         return samples, moves
+
