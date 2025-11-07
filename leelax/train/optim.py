@@ -12,7 +12,6 @@ def create_optimizer(
     weight_decay: float = 1e-4,
     betas: tuple[float, float] = (0.9, 0.999),
 ) -> Optimizer:
-    """Create Adam optimizer for the model."""
     return torch.optim.Adam(
         model.parameters(),
         lr=lr,
@@ -28,16 +27,12 @@ def create_scheduler(
     step_size: int = 200,
     gamma: float = 0.5,
 ) -> Optional[_LRScheduler]:
-    """Factory for common schedulers."""
     if scheduler_type is None:
         return None
-
     scheduler_type = scheduler_type.lower()
-
     if scheduler_type == "cosine":
         return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max)
-    elif scheduler_type == "step":
+    if scheduler_type == "step":
         return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
-    else:
-        raise ValueError(f"Unknown scheduler_type: {scheduler_type}")
+    raise ValueError(f"Unknown scheduler_type: {scheduler_type}")
 

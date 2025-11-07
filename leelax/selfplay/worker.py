@@ -46,13 +46,13 @@ class SelfPlayWorker:
             else:
                 action_idx = int(np.argmax(policy))
 
-            # back to real board
+            # back to real-board move
             move = index_to_move(board, action_idx)
             if move not in board.legal_moves:
                 move = np.random.choice(list(board.legal_moves))
 
             # record BEFORE push
-            recorder.add(state, policy, board.turn)
+            recorder.add(state, policy, board.turn, move)
 
             san_str = board.san(move)
             uci_str = move.uci()
@@ -63,6 +63,8 @@ class SelfPlayWorker:
             if verbose:
                 print(f"[{move_count}] {uci_str} ({san_str})")
 
+        # finalize with game result & moves
         recorder.finalize(board)
-        return recorder.export()
-
+        samples = recorder.export()
+        moves = recorder.moves
+        return samples, moves
