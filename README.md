@@ -62,12 +62,12 @@ The goal is **not** to maximize playing strength, but to build a *transparent, a
 
 ## 🧰 Roadmap
 
-- [ ] Environment & canonical encoding
-- [ ] Network definition
-- [ ] MCTS (PUCT)
-- [ ] Self-play loop
-- [ ] Replay buffer & DataLoader integration
-- [ ] Training scheduler + logging
+- [x] Environment & canonical encoding
+- [x] Network definition
+- [x] MCTS (PUCT)
+- [x] Self-play loop
+- [x] Replay buffer & DataLoader integration
+- [x] Training scheduler + logging
 - [ ] Evaluation & Arena system
 - [ ] Reward shaping extensions
 - [ ] Long-run experiment analysis
