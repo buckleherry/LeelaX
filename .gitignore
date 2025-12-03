@@ -54,6 +54,7 @@ Helper/
 scratch/
 notebooks/sandbox/
 experiments/
+arena/
 
 # === OS & Misc ===
 *.DS_Store

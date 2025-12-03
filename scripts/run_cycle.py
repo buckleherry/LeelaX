@@ -40,9 +40,10 @@ def main():
     worker = SelfPlayWorker(
         net_fn,
         n_simulations=args.simulations,
-        temperature=1.0,
         max_moves=args.max_moves,
         device=device,
+        tau_moves=12,
+        dirichlet_until=20,
     )
 
     buffer = ReplayBuffer(capacity=100_000)

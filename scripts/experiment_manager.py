@@ -29,7 +29,15 @@ def load_checkpoint_as_netfn(ckpt_path: str, device: str = "cpu"):
 def engine_move(board: chess.Board, net_fn, simulations: int, device: str, neutral: bool) -> Tuple[int, np.ndarray]:
     mcts = PUCT(net_fn, n_simulations=simulations, device=device)
     policy, _ = mcts.run(board, add_dirichlet=not neutral)
-    a_idx = int(np.argmax(policy))  # deterministic for viewing
+
+    if neutral:
+        # deterministic engine line
+        a_idx = int(np.argmax(policy))
+    else:
+        # explorative mode: Policy-Sampling
+        probs = policy.astype(float)
+        probs = probs / probs.sum()
+        a_idx = int(np.random.choice(len(probs), p=probs))
     return a_idx, policy
 
 def play_one_game(net_fn, simulations: int, max_moves: int, device: str, neutral: bool) -> Tuple[str, str, int]:
@@ -95,7 +103,7 @@ def main():
 
         # simple post-filter
         keep = True
-        if args.short-max-plies is not None:
+        if args.short_max_plies is not None:
             # parse result quickly from PGN header line
             res_line = pgn_str.splitlines()[0] if pgn_str else ""
             # Count plies already known; no need to re-parse PGN
