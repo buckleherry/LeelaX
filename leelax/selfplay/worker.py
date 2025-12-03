@@ -30,8 +30,8 @@ class SelfPlayWorker:
         n_simulations: int = 64,
         max_moves: int = 512,
         device: str = "cpu",
-        tau_moves: int = 12,
-        dirichlet_until: int = 20,
+        tau_moves: int = 8,
+        dirichlet_until: int = 16,
     ) -> None:
         self.network_fn = network_fn
         self.n_simulations = n_simulations
