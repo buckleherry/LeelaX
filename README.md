@@ -34,6 +34,17 @@ The goal is **not** to maximize playing strength, but to build a *transparent, a
   - DataLoader-based batching
   - extensible for schedulers, logging, and mixed precision.
 
+## Model Sizes
+
+LeelaX currently implements 3 model variants:
+
+- **small** → 64×4 residual trunk (fastest CPU mode)
+- **base** → 96×6 trunk (balanced)
+- **128x6** → 128×6 trunk (strongest, recommended)
+
+The architecture follows AlphaZero/Leela-style design:
+trunk → policy head (76×8×8 logits) → value head.
+
 ---
 
 ## 🔁 Training & Evaluation
