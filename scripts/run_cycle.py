@@ -1,85 +1,116 @@
-from __future__ import annotations
+#!/usr/bin/env python
 
+from __future__ import annotations
 import argparse
 from pathlib import Path
-
 import torch
 
-from leelax.net.model import LeelaXNet
+from leelax.net.model import build_model
 from leelax.selfplay.worker import SelfPlayWorker
 from leelax.selfplay.replay_buffer import ReplayBuffer
 from leelax.train.loop import train_for_n_steps
-from leelax.train.logger import create_tb_writer
+
+
+def flexible_load(sd):
+    if "model_state_dict" in sd:
+        return sd["model_state_dict"]
+    if "state_dict" in sd:
+        return sd["state_dict"]
+    return sd
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LeelaX training cycle")
-    parser.add_argument("--cycles", type=int, default=3, help="number of selfplay+train cycles")
-    parser.add_argument("--games-per-cycle", type=int, default=20, help="self-play games per cycle")
-    parser.add_argument("--train-steps", type=int, default=200, help="training steps per cycle")
-    parser.add_argument("--simulations", type=int, default=32, help="MCTS simulations per move")
-    parser.add_argument("--max-moves", type=int, default=200, help="max-moves per game")
-    parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
-    parser.add_argument("--log-dir", type=str, default="runs")
-    args = parser.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cycles", type=int, required=True)
+    ap.add_argument("--games-per-cycle", type=int, required=True)
+    ap.add_argument("--train-steps", type=int, required=True)
+
+    ap.add_argument("--simulations", type=int, default=32)
+    ap.add_argument("--max-moves", type=int, default=200)
+    ap.add_argument("--device", type=str, default="cpu")
+
+    ap.add_argument("--batch-size", type=int, default=256)
+    ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--weight-decay", type=float, default=1e-4)
+    ap.add_argument("--scheduler", type=str, default="cosine")
+
+    ap.add_argument("--model-size", type=str, default="128x6",
+                    help="small / base / 128x6")
+    ap.add_argument("--warm-start", type=str, default=None)
+
+    ap.add_argument("--log-dir", type=str, default="runs/exp")
+    ap.add_argument("--checkpoint-dir", type=str, default="checkpoints/exp")
+
+    args = ap.parse_args()
 
     device = args.device
-    ckpt_dir = Path(args.checkpoint_dir)
-    ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1) model
-    model = LeelaXNet().to(device)
+    Path(args.log_dir).mkdir(exist_ok=True, parents=True)
+    Path(args.checkpoint-dir).mkdir(exist_ok=True, parents=True)
 
+    # Build model
+    model = build_model(args.model_size).to(device)
+    if args.warm_start:
+        raw = torch.load(args.warm_start, map_location=device)
+        model.load_state_dict(flexible_load(raw), strict=False)
+
+    # MCTS network_fn
     def net_fn(x):
         with torch.no_grad():
             x = x.to(device)
-            return model(x)
+            p, v = model(x)
+        return p, v
 
-    # 2) self-play worker + replay buffer
+    # Replay buffer
+    buffer = ReplayBuffer(capacity=100_000)
+
+    # Self-play worker
     worker = SelfPlayWorker(
-        net_fn,
+        network_fn=net_fn,
         n_simulations=args.simulations,
+        temperature=1.0,
         max_moves=args.max_moves,
         device=device,
-        tau_moves=12,
-        dirichlet_until=20,
     )
 
-    buffer = ReplayBuffer(capacity=100_000)
-    writer = create_tb_writer(args.log_dir)
+    global_step = 0
 
-    for cycle in range(1, args.cycles + 1):
-        print(f"[cycle {cycle}] self-play ...")
-        for g in range(1, args.games_per_cycle + 1):
-            samples, _moves = worker.play_game(verbose=False)
+    for c in range(1, args.cycles + 1):
+        print(f"[cycle {c}] self-play...")
+
+        for _ in range(args.games_per_cycle):
+            samples, _ = worker.play_game(verbose=False)
             buffer.add_many(samples)
-        print(f"[cycle {cycle}] buffer size = {len(buffer)}")
 
-        print(f"[cycle {cycle}] training ...")
-        train_for_n_steps(
-            model,
-            buffer,
-            n_steps=args.train_steps,
+        print(f"[cycle {c}] buffer size = {len(buffer)}")
+        print(f"[cycle {c}] training...")
+
+        global_step = train_for_n_steps(
+            model=model,
+            buffer=buffer,
+            steps=args.train_steps,
+            batch_size=args.batch_size,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler_name=args.scheduler,
             device=device,
-            tb_writer=writer,
+            tb_writer=None,
+            global_step_start=global_step,
         )
 
-        ckpt_path = ckpt_dir / f"model_cycle_{cycle:03d}.pt"
-        torch.save(
-            {
-                "model_state_dict": model.state_dict(),
-                "cycle": cycle,
-                "config": {
-                    "games_per_cycle": args.games_per_cycle,
-                    "train_steps": args.train_steps,
-                    "simulations": args.simulations,
-                },
-            },
-            ckpt_path,
-        )
-
-        print(f"[cycle {cycle}] checkpoint saved to {ckpt_path}")
+        # checkpoint
+        ckpt = {
+            "model_state_dict": model.state_dict(),
+            "cycle": c,
+            "config": {
+                "model_size": args.model_size,
+                "simulations": args.simulations,
+                "max_moves": args.max_moves,
+            }
+        }
+        path = Path(args.checkpoint_dir) / f"model_cycle_{c:03d}.pt"
+        torch.save(ckpt, path)
+        print(f"[cycle {c}] saved {path}")
 
 
 if __name__ == "__main__":
