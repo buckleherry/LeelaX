@@ -1,97 +1,79 @@
-# 🧠 LeelaX – AlphaZero-inspired Chess Reinforcement Learning Engine
+# LeelaX
+
+A lightweight AlphaZero-style reinforcement learning system for chess,
+built from scratch with a focus on **RL systems engineering**, **self-play training**,
+and **evaluation under limited compute**.
+
+> This project is a research / engineering prototype — not a production chess engine.
+
+---
 
 ## Overview
 
-LeelaX is a modular, research-oriented implementation of an **AlphaZero-style Reinforcement Learning system** for chess.  
-It is inspired by Leela Chess Zero, focusing on clarity, modularity, and experimental flexibility.
+LeelaX implements an end-to-end reinforcement learning loop inspired by AlphaZero:
 
-The goal is **not** to maximize playing strength, but to build a *transparent, analyzable RL pipeline* suitable for modern AI research and portfolio demonstration.
+- Neural network with **policy + value heads**
+- **Monte Carlo Tree Search (MCTS)** for move selection
+- **Self-play** to generate training data
+- Supervised-style training from self-play targets
+- **Checkpoint-based evaluation** via arena matches
 
----
-
-## 🧩 Core Modules
-
-- **Environment (`leelax.env`)**  
-  Based on `python-chess`, providing canonical (side-to-move) board encoding, legality masks, and reward shaping hooks.
-
-- **Network (`leelax.net`)**  
-  Compact ResNet-like architecture with shared trunk and two heads (policy + value).  
-  Input: 24x8x8 tensor, Output: policy logits (4864) and value scalar.
-
-- **MCTS (`leelax.mcts`)**  
-  Implements the PUCT variant with neural priors, Dirichlet noise, and temperature control.
-
-- **Self-Play (`leelax.selfplay`)**  
-  Generates games through MCTS-guided play. Stores (state, policy, value) tuples into a replay buffer.
-
-- **Replay Buffer & Dataset (`leelax.selfplay.replay_buffer`, `leelax.train.replay_dataset`)**  
-  In-memory ring buffer + PyTorch Dataset wrapper for efficient sampling and training integration.
-
-- **Training (`leelax.train`)**  
-  Implements AlphaZero-style optimization:
-  - Loss = CE(π, logits) + MSE(z, value)
-  - Adam optimizer
-  - DataLoader-based batching
-  - extensible for schedulers, logging, and mixed precision.
-
-## Model Sizes
-
-LeelaX currently implements 3 model variants:
-
-- **small** → 64×4 residual trunk (fastest CPU mode)
-- **base** → 96×6 trunk (balanced)
-- **128x6** → 128×6 trunk (strongest, recommended)
-
-The architecture follows AlphaZero/Leela-style design:
-trunk → policy head (76×8×8 logits) → value head.
+The system is designed to be **fully configurable** and to run **CPU-only**,
+making it suitable for experimentation without large compute budgets.
 
 ---
 
-## 🔁 Training & Evaluation
+## Key Features
 
-### Minimal Loop
+- 🧠 **Policy–Value Network**
+  - Configurable model sizes (e.g. `128x6`)
+  - Residual CNN architecture
+- 🌲 **MCTS**
+  - Adjustable simulations per move
+  - Temperature-controlled exploration
+- ♻️ **Self-Play Training Loop**
+  - Replay buffer
+  - Multi-cycle training
+  - Checkpointing & resume support
+- ⚔️ **Arena Evaluation**
+  - Checkpoint vs checkpoint matches
+  - Neutral evaluation mode (no shaping)
+  - Elo-style scoring
+- 📊 **Diagnostics**
+  - TensorBoard logging
+  - PGN & FEN export for qualitative analysis
 
-1. Generate self-play games via MCTS:
-   ```python
-   samples = worker.play_game()
-   buffer.add_many(samples)
-   ```
-2. Train for N steps:
-    ```python
-    from leelax.train.loop import train_for_n_steps
-    train_for_n_steps(model, buffer, n_steps=1000)
-    ```
-3. (Optional) Evaluate vs older checkpoints or Stockfish (arena mode planned).
+---
 
-## Research & Logging
+## Current Status
 
-- The project is designed for experimental analysis:
-- Reward shaping (aggressiveness, initiative, control)
-- Policy evolution tracking
-- Replay visualization
-- Evaluation across training epochs
+- The model plays **legal, structured chess** and can:
+  - Develop pieces
+  - Find checks and basic mates
+  - Avoid trivial repetitions more reliably than early runs
+- Still **tactically weak**:
+  - Material is often dropped
+  - Long-term planning is limited
+- Main limiting factors:
+  - CPU-only training
+  - Relatively small networks
+  - Limited self-play volume
 
-## 🧰 Roadmap
+This behavior is expected for the current training regime and compute budget.
 
-- [x] Environment & canonical encoding
-- [x] Network definition
-- [x] MCTS (PUCT)
-- [x] Self-play loop
-- [x] Replay buffer & DataLoader integration
-- [x] Training scheduler + logging
-- [ ] Evaluation & Arena system
-- [ ] Reward shaping extensions
-- [ ] Long-run experiment analysis
+---
 
-## ⚙️ Setup
+## Example: Training Run
 
-```python
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-pytest -q
+```bash
+python scripts/run_cycle.py \
+  --cycles 30 \
+  --games-per-cycle 180 \
+  --train-steps 2000 \
+  --simulations 40 \
+  --max-moves 320 \
+  --device cpu \
+  --model-size 128x6 \
+  --log-dir runs/exp_K_128x6_baseline \
+  --checkpoint-dir checkpoints/exp_K_128x6_baseline
 ```
-
-## Licence
-
-MIT License — open for academic and personal research use.
