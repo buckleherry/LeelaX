@@ -133,6 +133,6 @@ It is not a competitive chess engine.
 
 ## Author
 
-Built by Sven Kohl
+Built by Sven Kohl  
 _AI Engineer_
 
