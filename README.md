@@ -1,8 +1,11 @@
 # LeelaX
 
-A lightweight AlphaZero-style reinforcement learning system for chess,
-built from scratch with a focus on **RL systems engineering**, **self-play training**,
-and **evaluation under limited compute**.
+A lightweight AlphaZero-style reinforcement learning system for chess.  
+
+Built from scratch with a focus on:
+- **RL systems engineering**
+- **self-play training**,
+- **evaluation under limited compute**.
 
 > This project is a research / engineering prototype — not a production chess engine.
 
@@ -18,10 +21,9 @@ LeelaX implements an end-to-end reinforcement learning loop inspired by AlphaZer
 - Supervised-style training from self-play targets
 - **Checkpoint-based evaluation** via arena matches
 
-The system is designed to be **fully configurable** and to run **CPU-only**,
+The system is designed to be **fully configurable** and to run **CPU-only**,  
 making it suitable for experimentation without large compute budgets.
 
----
 
 ## Key Features
 
@@ -50,9 +52,12 @@ making it suitable for experimentation without large compute budgets.
 - The model plays **legal, structured chess** and can:
   - Develop pieces
   - Find checks and basic mates
+  - Play first games which lead to checkmate in under 50 moves
   - Avoid trivial repetitions more reliably than early runs
 - Still **tactically weak**:
-  - Material is often dropped
+  - Material adventage not yet fully understood (thus hanging a lot of pieces still)
+  - Some positions still end in senseless reptition
+  - King walks (especially with black it seems)
   - Long-term planning is limited
 - Main limiting factors:
   - CPU-only training
@@ -61,10 +66,10 @@ making it suitable for experimentation without large compute budgets.
 
 This behavior is expected for the current training regime and compute budget.
 
-I am currently training on my MacbookAir M1 from 2020.
-Generating a couple of thousand games takes somewhere from 12-24 hours, depending on the chosen Model size.
-To reach a significant stronger state, RL self-play models in this category usually need a vastly bigger size of games played.
-Currently, this is not feasible and also not the main scope of the project.
+I am currently training on my MacbookAir M1 from 2020.  
+Generating a couple of thousand games takes somewhere from 12-24 hours, depending on the chosen Model size.  
+To reach a significant stronger state, RL self-play models in this category usually need a vastly bigger size of games played.  
+Currently, this is not feasible and also not the main scope of the project.  
 
 ---
 
@@ -107,7 +112,6 @@ This project focuses on:
 - Understanding exploration, collapse, and evaluation pitfalls
 - Working under realistic compute constraints
 
----
 
 ## Future Work
 
@@ -126,7 +130,6 @@ Possible extensions:
 LeelaX is intended for educational and research purposes.
 It is not a competitive chess engine.
 
----
 
 ## Author
 
