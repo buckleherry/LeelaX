@@ -61,6 +61,11 @@ making it suitable for experimentation without large compute budgets.
 
 This behavior is expected for the current training regime and compute budget.
 
+I am currently training on my MacbookAir M1 from 2020.
+Generating a couple of thousand games takes somewhere from 12-24 hours, depending on the chosen Model size.
+To reach a significant stronger state, RL self-play models in this category usually need a vastly bigger size of games played.
+Currently, this is not feasible and also not the main scope of the project.
+
 ---
 
 ## Example: Training Run
@@ -77,3 +82,54 @@ python scripts/run_cycle.py \
   --log-dir runs/exp_K_128x6_baseline \
   --checkpoint-dir checkpoints/exp_K_128x6_baseline
 ```
+
+## Example: Arena Evaluation
+```bash
+python scripts/arena.py \
+  --a checkpoints/exp_K_128x6_baseline/model_cycle_020.pt \
+  --b checkpoints/exp_K_128x6_baseline/model_cycle_030.pt \
+  --games 80 \
+  --simulations 64 \
+  --max-moves 220 \
+  --neutral \
+  --save-pgns \
+  --out-dir arena/exp_K_c20_vs_c30
+```
+
+---
+
+## Project Goals
+
+This project focuses on:
+
+- Reinforcement learning system design
+- Debugging and stabilizing self-play pipelines
+- Understanding exploration, collapse, and evaluation pitfalls
+- Working under realistic compute constraints
+
+---
+
+## Future Work
+
+Possible extensions:
+
+- Reward shaping for aggressive play styles
+- Reward shaping for quicker learning process (rewards for material gains, checks, king exposing...)
+- Knowledge distillation from stronger engines
+- GPU training and larger networks
+- Improved endgame handling
+
+--- 
+
+## Disclaimer
+
+LeelaX is intended for educational and research purposes.
+It is not a competitive chess engine.
+
+---
+
+## Author
+
+Built by Sven Kohl
+_AI Engineer_
+
