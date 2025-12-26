@@ -53,7 +53,7 @@ class LeelaXNet(nn.Module):
         )
 
         # --------------------------
-        # Policy head (your version)
+        # Policy head
         # --------------------------
         self.policy_conv = nn.Conv2d(channels, 32, 1, bias=False)
         self.policy_bn   = nn.BatchNorm2d(32)
@@ -91,7 +91,7 @@ class LeelaXNet(nn.Module):
         # policy head
         p = F.relu(self.policy_bn(self.policy_conv(x)), inplace=True)
         p = self.policy_logits_conv(p)  # [B, 76, 8, 8]
-        p = p.view(p.size(0), 76 * 8 * 8)  # flatten to match your policy_index logic
+        p = p.view(p.size(0), 76 * 8 * 8)  # flatten to match policy_index logic
 
         # value head
         v = F.relu(self.value_bn(self.value_conv(x)), inplace=True)
