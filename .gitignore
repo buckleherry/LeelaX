@@ -18,6 +18,11 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # === Jupyter Notebooks ===
 */.ipynb_checkpoints/
@@ -28,6 +33,12 @@ dist/
 
 # === Project Data (RL & ML) ===
 # Model weights, training runs, and logs
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pgn
+events.out.*
 checkpoints/
 runs/
 wandb/
@@ -40,7 +51,7 @@ temp/
 data/
 datasets/
 replays/
-selfplay/
+/selfplay/
 evals/
 
 # === Optional Containers ===

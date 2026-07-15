@@ -2,10 +2,12 @@
 
 A lightweight AlphaZero-style reinforcement learning system for chess.  
 
+The name is a nod to Leela Chess Zero (Lc0) — this project is unaffiliated and built independently from scratch.
+
 Built from scratch with a focus on:
 - **RL systems engineering**
-- **self-play training**,
-- **evaluation under limited compute**.
+- **self-play training**
+- **evaluation under limited compute**
 
 > This project is a research / engineering prototype — not a production chess engine.
 
@@ -55,8 +57,8 @@ making it suitable for experimentation without large compute budgets.
   - Play first games which lead to checkmate in under 50 moves
   - Avoid trivial repetitions more reliably than early runs
 - Still **tactically weak**:
-  - Material adventage not yet fully understood (thus hanging a lot of pieces still)
-  - Some positions still end in senseless reptition
+  - Material advantage not yet fully understood (thus still hanging a lot of pieces)
+  - Some positions still end in senseless repetition
   - King walks (especially with black it seems)
   - Long-term planning is limited
 - Main limiting factors:
@@ -66,9 +68,9 @@ making it suitable for experimentation without large compute budgets.
 
 This behavior is expected for the current training regime and compute budget.
 
-I am currently training on my MacbookAir M1 from 2020.  
-Generating a couple of thousand games takes somewhere from 12-24 hours, depending on the chosen Model size.  
-To reach a significant stronger state, RL self-play models in this category usually need a vastly bigger size of games played.  
+I am currently training on my MacBook Air M1 from 2020.  
+Generating a couple of thousand games takes somewhere between 12 and 24 hours, depending on the chosen model size.  
+To reach a significantly stronger state, RL self-play models in this category usually need a vastly larger number of games played.  
 Currently, this is not feasible and also not the main scope of the project.  
 
 ---
@@ -118,7 +120,7 @@ This project focuses on:
 Possible extensions:
 
 - Reward shaping for aggressive play styles
-- Reward shaping for quicker learning process (rewards for material gains, checks, king exposing...)
+- Reward shaping for a quicker learning process (rewards for material gains, checks, king exposure...)
 - Knowledge distillation from stronger engines
 - GPU training and larger networks
 - Improved endgame handling
@@ -135,4 +137,6 @@ It is not a competitive chess engine.
 
 Built by Sven Kohl  
 _AI Engineer_
+
+More projects & background: https://skohl.io
 
