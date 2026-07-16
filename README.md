@@ -75,6 +75,20 @@ Currently, this is not feasible and also not the main scope of the project.
 
 ---
 
+## Setup
+
+LeelaX is installed as an editable package, so the `leelax` module is importable from anywhere in the repository (scripts, tests, notebooks).
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e ".[dev]"
+pytest   # verify the installation (22 tests)
+```
+
+---
+
 ## Example: Training Run
 
 ```bash
