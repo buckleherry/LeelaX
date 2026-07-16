@@ -150,7 +150,7 @@ It is not a competitive chess engine.
 ## Author
 
 Built by Sven Kohl  
-_AI Engineer_
+_Data & AI Engineer_
 
 More projects & background: https://skohl.io
 
